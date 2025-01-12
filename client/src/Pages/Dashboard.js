@@ -115,7 +115,7 @@ function Dashboard() {
         },
       });
       setSuccessMessage('Blog deleted successfully!');
-      setBlogs((prevBlogs) => prevBlogs.filter((blog) => blog._id !== blogId)); // Use _id here
+      setBlogs((prevBlogs) => prevBlogs.filter((blog) => blog._id !== blogId));
     } catch (error) {
       console.error('Error deleting blog:', error);
     }
@@ -202,34 +202,21 @@ function Dashboard() {
 
       <hr />
 
-      <h2>Your Blogs</h2>
-      <div className="list-group mt-3">
-        {blogs.length > 0 ? (
-          blogs.map((blog) => (
-            <div key={blog._id} className="list-group-item">
-              <h5>{blog.title}</h5>
-              <p>{blog.description}</p>
-              {blog.image && (
-                <img src={`http://localhost:4000${blog.image}`} alt={blog.title} width="100" />
-              )}
-              <button
-                className="btn btn-sm btn-warning me-2"
-                onClick={() => handleEdit(blog)}
-              >
-                Edit
-              </button>
-              <button
-                className="btn btn-sm btn-danger"
-                onClick={() => handleDelete(blog._id)} // Use _id here
-              >
-                Delete
-              </button>
-            </div>
-          ))
-        ) : (
-          <p>No blogs found.</p>
-        )}
-      </div>
+      <h2 className="mt-4">All Blogs</h2>
+      <ul className="list-group">
+        {blogs.map((blog) => (
+          <li key={blog._id} className="list-group-item">
+            <h5>{blog.title}</h5>
+            <p>{blog.description}</p>
+            <button className="btn btn-warning" onClick={() => handleEdit(blog)}>
+              Edit
+            </button>
+            <button className="btn btn-danger ml-2" onClick={() => handleDelete(blog._id)}>
+              Delete
+            </button>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }

@@ -58,17 +58,62 @@ app.post('/login', async (req, res) => {
   }
 });
 
+// Middleware to authenticate user
+const authenticateUser = (req, res, next) => {
+  const token = req.headers['authorization']?.split(' ')[1];
+  if (!token) return res.status(401).json({ message: 'Access denied' });
+
+  try {
+    const decoded = jwt.verify(token, SECRET_KEY);
+    req.user = decoded;
+    next();
+  } catch (error) {
+    return res.status(401).json({ message: 'Invalid or expired token' });
+  }
+};
+
 // CRUD for Blogs
 // Create Blog
-app.post('/blogs', upload.single('image'), async (req, res) => {
+app.post('/blogs', authenticateUser, upload.single('image'), async (req, res) => {
   const { title, description } = req.body;
   const image = req.file ? `/uploads/${req.file.filename}` : null;
-  const blog = new Blog({ title, description, image });
-  await blog.save();
-  res.status(201).json(blog);
+
+  const blog = new Blog({
+    title,
+    description,
+    image,
+    user: req.user.id, // Associate the blog with the logged-in user
+  });
+
+  try {
+    await blog.save();
+    res.status(201).json(blog);
+  } catch (error) {
+    res.status(500).json({ message: 'Error creating blog' });
+  }
+});
+// Get Blog Details by ID
+app.get('/blogs/:id', async (req, res) => {
+  const { id } = req.params;
+
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    return res.status(400).json({ message: 'Invalid Blog ID' });
+  }
+
+  try {
+    const blog = await Blog.findById(id).populate('user', 'username email'); // Populate the user field to get user details (if required)
+    if (!blog) {
+      return res.status(404).json({ message: 'Blog not found' });
+    }
+
+    res.json(blog);
+  } catch (error) {
+    console.error('Error fetching blog details:', error);
+    res.status(500).json({ message: 'Error fetching blog details' });
+  }
 });
 
-// Get All Blogs
+// Get All Blogs (For All Users)
 app.get('/blogs', async (req, res) => {
   try {
     const blogs = await Blog.find();
@@ -78,22 +123,42 @@ app.get('/blogs', async (req, res) => {
   }
 });
 
+// Get Blogs for a Particular User
+app.get('/user/blogs', authenticateUser, async (req, res) => {
+  try {
+    const blogs = await Blog.find({ user: req.user.id }); // Fetch blogs created by the logged-in user
+    res.json(blogs);
+  } catch (error) {
+    res.status(500).json({ message: 'Error fetching user blogs' });
+  }
+});
+
 // Update Blog
-app.put('/blogs/:id', upload.single('image'), async (req, res) => {
+app.put('/blogs/:id', authenticateUser, upload.single('image'), async (req, res) => {
   const { id } = req.params;
-  
+
   if (!mongoose.Types.ObjectId.isValid(id)) {
     return res.status(400).json({ message: 'Invalid Blog ID' });
   }
 
-  const { title, description} = req.body;
+  const { title, description } = req.body;
   const image = req.file ? `/uploads/${req.file.filename}` : null;
-  
+
   try {
-    const blog = await Blog.findByIdAndUpdate(id, { title, description, image }, { new: true });
+    const blog = await Blog.findById(id);
     if (!blog) {
       return res.status(404).json({ message: 'Blog not found' });
     }
+
+    if (blog.user.toString() !== req.user.id) {
+      return res.status(403).json({ message: 'You are not authorized to edit this blog' });
+    }
+
+    blog.title = title;
+    blog.description = description;
+    blog.image = image || blog.image;
+
+    await blog.save();
     res.json(blog);
   } catch (error) {
     res.status(500).json({ message: 'Error updating blog' });
@@ -101,7 +166,7 @@ app.put('/blogs/:id', upload.single('image'), async (req, res) => {
 });
 
 // Delete Blog
-app.delete('/blogs/:id', async (req, res) => {
+app.delete('/blogs/:id', authenticateUser, async (req, res) => {
   const { id } = req.params;
 
   if (!mongoose.Types.ObjectId.isValid(id)) {
@@ -109,34 +174,22 @@ app.delete('/blogs/:id', async (req, res) => {
   }
 
   try {
-    const blog = await Blog.findByIdAndDelete(id);
+    const blog = await Blog.findById(id);
     if (!blog) {
       return res.status(404).json({ message: 'Blog not found' });
     }
+
+    if (blog.user.toString() !== req.user.id) {
+      return res.status(403).json({ message: 'You are not authorized to delete this blog' });
+    }
+
+    await Blog.findByIdAndDelete(id);
     res.json({ message: 'Blog deleted' });
   } catch (error) {
     res.status(500).json({ message: 'Error deleting blog' });
   }
 });
 
-// Get Single Blog by ID
-app.get('/blogs/:id', async (req, res) => {
-    const { id } = req.params;
-  
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(400).json({ message: 'Invalid Blog ID' });
-    }
-  
-    try {
-      const blog = await Blog.findById(id);
-      if (!blog) {
-        return res.status(404).json({ message: 'Blog not found' });
-      }
-      res.json(blog); // Return the full blog object
-    } catch (error) {
-      res.status(500).json({ message: 'Error fetching blog' });
-    }
-  });
-  
-// Start Server
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});

@@ -41,12 +41,18 @@ function BlogDetails() {
               <div className="card-body">
                 <h5 className="card-title text-center">{blog.title}</h5>
                 <p className="card-text">{blog.description}</p> {/* Full description */}
+
                 {/* Display the username if available */}
-                {blog.user && (
+                {blog.user && blog.user.username ? (
                   <p className="card-text text-center">
-                    <strong>Author:</strong> {blog.user.username} {/* Display username */}
+                    <strong>Author:</strong> {blog.user.username}
+                  </p>
+                ) : (
+                  <p className="card-text text-center">
+                    <strong>Author:</strong> Unknown
                   </p>
                 )}
+
                 {/* Go back button */}
                 <button className="btn btn-secondary" onClick={() => navigate(-1)}>
                   Go Back
@@ -59,9 +65,7 @@ function BlogDetails() {
         <div className="col-6 text-center">
           <p>Loading blog...</p>
         </div>
-        
       )}
-      
     </div>
   );
 }
