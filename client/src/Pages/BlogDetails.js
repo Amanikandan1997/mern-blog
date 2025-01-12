@@ -56,10 +56,12 @@ function BlogDetails() {
           </div>
         </div>
       ) : (
-        <div className="col-12 text-center">
+        <div className="col-6 text-center">
           <p>Loading blog...</p>
         </div>
+        
       )}
+      
     </div>
   );
 }

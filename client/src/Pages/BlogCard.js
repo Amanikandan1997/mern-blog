@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import BlogCrud from './BlogCrud';
 
 function BlogCard() {
   const [blogs, setBlogs] = useState([]);
@@ -18,6 +19,8 @@ function BlogCard() {
 
   return (
     <div className="container" style={{ padding: '30px' }}>
+      <BlogCrud/>
+      <h1>Blog Posts</h1>
       <div className="row">
         {error && (
           <div className="col-12 text-center mb-4">
